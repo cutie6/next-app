@@ -1,124 +1,227 @@
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Table } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import axios from 'axios';
 
-const inter = Inter({ subsets: ['latin'] })
+
+const randomUserApi ='https://randomuser.me/api/'
+const fetchRandomUser = async () => {
+  const res = await axios.get(randomUserApi);
+  return res.data.results?.[0]
+}
+
+async function getRandomUsers(num:number){
+  const data=[]
+  for(let i=0;i<num;i++){
+    data[i] = await fetchRandomUser()
+    data[i].key=i
+  }
+  return data
+}
+
+const randomUserObj  = {
+  "gender": "female",
+  "name": {
+    "title": "Miss",
+    "first": "Jennie",
+    "last": "Nichols"
+  },
+  "location": {
+    "street": {
+      "number": 8929,
+      "name": "Valwood Pkwy",
+    },
+    "city": "Billings",
+    "state": "Michigan",
+    "country": "United States",
+    "postcode": "63104",
+    "coordinates": {
+      "latitude": "-69.8246",
+      "longitude": "134.8719"
+    },
+    "timezone": {
+      "offset": "+9:30",
+      "description": "Adelaide, Darwin"
+    }
+  },
+  "email": "jennie.nichols@example.com",
+  "login": {
+    "uuid": "7a0eed16-9430-4d68-901f-c0d4c1c3bf00",
+    "username": "yellowpeacock117",
+    "password": "addison",
+    "salt": "sld1yGtd",
+    "md5": "ab54ac4c0be9480ae8fa5e9e2a5196a3",
+    "sha1": "edcf2ce613cbdea349133c52dc2f3b83168dc51b",
+    "sha256": "48df5229235ada28389b91e60a935e4f9b73eb4bdb855ef9258a1751f10bdc5d"
+  },
+  "dob": {
+    "date": "1992-03-08T15:13:16.688Z",
+    "age": 30
+  },
+  "registered": {
+    "date": "2007-07-09T05:51:59.390Z",
+    "age": 14
+  },
+  "phone": "(272) 790-0888",
+  "cell": "(489) 330-2385",
+  "id": {
+    "name": "SSN",
+    "value": "405-88-3636"
+  },
+  "picture": {
+    "large": "https://randomuser.me/api/portraits/men/75.jpg",
+    "medium": "https://randomuser.me/api/portraits/med/men/75.jpg",
+    "thumbnail": "https://randomuser.me/api/portraits/thumb/men/75.jpg"
+  },
+  "nat": "US"
+}
+
+type DataType = typeof randomUserObj & {key:number}
+
+
+
+const detailConfig=[
+  {
+    label:'Email',
+    getText:(record:DataType)=>record.email
+  },
+  {
+    label: 'Phone',
+    getText: (record: DataType) => record.phone
+  },
+  {
+    label: 'Registered Date',
+    getText: (record: DataType) => record.registered.date.slice(0,10)
+  },
+  {
+    label: 'Cell',
+    getText: (record: DataType) => record.cell
+  },
+  {
+    label: 'Birthday',
+    getText: (record: DataType) => record.dob.date.slice(0, 10)
+  },
+]
+
 
 export default function Home() {
+  const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([])
+
+
+  const columns: ColumnsType<DataType> = useMemo(()=>{
+    return [
+      {
+        title: 'Name', dataIndex: '', key: 'name',
+        render: (text, record, index) => {
+
+          const isExpanded = expandedRowKeys[0]===index
+
+          const size = isExpanded?'60px':'40px'
+          const url = isExpanded ? record.picture.medium : record.picture.thumbnail
+          return <div style={{
+            display: 'flex',
+            alignItems:'center'
+          }}>
+            <div style={{
+              height: size,
+              width: size,
+              borderRadius: '50%',
+              backgroundSize: 'cover',
+              backgroundImage: `url(${url})`,
+              marginRight: '10px'
+            }}></div>
+            <div>
+              <p>{record.name.first} {record.name.last}</p>
+              {/* 现在数据里没有返回 name.user 了 */}
+              <p style={{
+                color: '#666'
+              }}>{record.name.title}</p>
+            </div>
+          </div>
+        },
+      },
+      {
+        title: 'Phone', key: 'phone',
+        render: (text, record) => <span style={{
+          color: '#666'
+        }}>
+          {record.phone}
+        </span>,
+      },
+      {
+        title: 'Location', dataIndex: '', key: 'location',
+        render: (text, record) => <span style={{
+          display: 'inline-block',
+          padding: '2px 14px',
+          borderRadius: '28px',
+          background: '#fcf0dd',
+          color: '#913f1d'
+        }}>
+          {record.location.city}, {record.location.country}
+        </span>,
+      },
+      {
+        title: 'Action',
+        dataIndex: '',
+        key: 'x',
+        render: () => <a>Delete</a>,
+      },
+    ]
+
+  },[expandedRowKeys])
+
+ 
+
+  const [data, setData] = useState<DataType[]>([])
+
+  useEffect(()=>{
+    getRandomUsers(5).then((res: DataType[]) =>{
+      setData(res)
+    })
+  },[])
+
+  const handleOnExpand = useCallback((flag: Boolean, record: DataType)=>{
+    if(flag){
+      setExpandedRowKeys([record.key])
+    }else{
+      setExpandedRowKeys([])
+    }
+
+  },[])
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">pages/index.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+   <div>
+    <div  style={{
+      height:'100px',
+      background:'yellowgreen'
+    }}></div>
+      <Table
+        columns={columns}
+        expandable={{
+          expandedRowRender: (record) => <div style={{
+            display:'grid',
+            gridTemplateColumns: '50% 50%',
+            marginLeft:'60px'
+          }}>
+            {
+              detailConfig.map((ele,ind)=>{
+              return  <div key={ind} style={{marginBottom:'15px'}}>
+                  <p style={{color:'#666'}}>{ele.label}</p>
+                  <p>{ele.getText(record)}</p>
+                </div>
+              })
+            }
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700/10 after:dark:from-sky-900 after:dark:via-[#0141ff]/40 before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Discover and deploy boilerplate example Next.js&nbsp;projects.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+          </div>,
+          rowExpandable: (record) => true,
+          expandRowByClick:true,
+          showExpandColumn:false,
+          expandedRowKeys,
+          onExpand: handleOnExpand
+        }}
+        dataSource={data}
+        sticky={true}
+      />
+   </div>
   )
 }

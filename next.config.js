@@ -3,4 +3,12 @@ const nextConfig = {
   reactStrictMode: true,
 }
 
-module.exports = nextConfig
+
+const semi = require("@douyinfe/semi-next").default({
+  /* the extension options */
+});
+module.exports = semi({
+  // your custom Next.js configuration
+});
+
+// module.exports = nextConfig
